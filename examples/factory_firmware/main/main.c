@@ -36,6 +36,7 @@
 #include "app_audio_recorder.h"
 #include "app_voice_interaction.h"
 #include "debi_face_bridge.h"
+#include "debi_os.h"
 
 
 #ifdef CONFIG_INTR_TRACKING
@@ -176,6 +177,7 @@ void app_init(void)
     app_ota_init();
     app_taskflow_init();
     debi_face_bridge_init();
+    debi_os_init();
     app_voice_interaction_init();
     app_wifi_init();
     app_time_init();
