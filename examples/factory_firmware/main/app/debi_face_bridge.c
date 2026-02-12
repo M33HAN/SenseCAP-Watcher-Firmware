@@ -15,6 +15,7 @@
  */
 
 #include "debi_face_bridge.h"
+#include "debi_voice.h"
 
 #include <string.h>
 #include <time.h>
@@ -163,8 +164,10 @@ static void bridge_set_face(face_state_t state)
              ui_face_state_name(s_bridge.current_state),
              ui_face_state_name(state));
 
+    face_state_t prev = s_bridge.current_state;
     s_bridge.current_state = state;
     ui_face_set_state(state);
+    debi_voice_on_face_change(prev, state);
 }
 
 /**

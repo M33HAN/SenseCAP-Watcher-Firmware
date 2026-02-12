@@ -5,6 +5,8 @@
 #include "sensecap-watcher.h"
 
 #include "util.h"
+#include "ui_face.h"
+#include "ui_face_states.h"
 #include "ui/ui_helpers.h"
 #include <time.h>
 #include "app_device_info.h"
@@ -944,6 +946,9 @@ int view_init(void)
 
     lvgl_port_lock(0);
     ui_init();
+    ui_face_init(lv_layer_top());
+    ui_face_states_init();
+    ui_face_set_state(FACE_STATE_IDLE);
     lv_pm_init();
     view_alarm_init(lv_layer_top());
     view_image_preview_init(ui_Page_ViewLive);
