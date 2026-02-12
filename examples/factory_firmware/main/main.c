@@ -38,6 +38,7 @@
 #include "debi_face_bridge.h"
 #include "debi_os.h"
 #include "debi_voice.h"
+#include "debi_comms.h"
 
 
 #ifdef CONFIG_INTR_TRACKING
@@ -180,6 +181,7 @@ void app_init(void)
     debi_face_bridge_init();
     debi_voice_init();
     debi_os_init();
+    debi_comms_init();
     app_voice_interaction_init();
     app_wifi_init();
     app_time_init();

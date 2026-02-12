@@ -26,6 +26,7 @@
 #include "app_sensor.h"
 #include "debi_face_bridge.h"
 #include "view/ui_face_states.h"
+#include "debi_comms.h"
 
 static const char *TAG = "debi_os";
 
@@ -321,6 +322,7 @@ static void mqtt_disconnect(void)
     esp_mqtt_client_destroy(s_os.mqtt_handle);
     s_os.mqtt_handle = NULL;
     s_os.hub_connected = false;
+        debi_comms_on_disconnected();
 }
 
 /* ============================================================
@@ -345,6 +347,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 
             /* Publish online status (retained) */
             publish_status();
+        debi_comms_on_connected(s_os.mqtt_handle);
 
             /* Start timers */
             esp_timer_start_periodic(s_os.heartbeat_timer,
@@ -362,6 +365,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGW(TAG, "Hub MQTT disconnected");
             s_os.hub_connected = false;
+        debi_comms_on_disconnected();
 
             /* Stop periodic timers */
             esp_timer_stop(s_os.heartbeat_timer);
@@ -387,6 +391,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 
             if (strstr(topic, "/cmd") || strstr(topic, "/config")) {
                 handle_hub_command(event->data, event->data_len);
+            debi_comms_handle_message(topic, event->data, event->data_len);
             }
             break;
         }
