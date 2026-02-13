@@ -178,10 +178,10 @@ void app_init(void)
     app_sensecraft_init();
     app_ota_init();
     app_taskflow_init();
-    debi_face_bridge_init();
-    debi_voice_init();
-    debi_os_init();
-    debi_comms_init();
+    debi_comms_init();          /* 1. mutex & queue FIRST */
+    debi_voice_init();          /* 2. audio module */
+    debi_face_bridge_init();    /* 3. face bridge */
+    debi_os_init();             /* 4. MQTT last */
     app_voice_interaction_init();
     app_wifi_init();
     app_time_init();

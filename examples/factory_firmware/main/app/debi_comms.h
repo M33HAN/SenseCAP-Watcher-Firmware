@@ -76,7 +76,7 @@ typedef struct {
 /**
  * @brief Initialise the comms layer.
  *
- * Call after debi_os_init().  Does NOT create an MQTT client —
+ * Call BEFORE debi_os_init().  Does NOT create an MQTT client —
  * uses the one from debi_os.
  */
 void debi_comms_init(void);

@@ -78,7 +78,6 @@ static void sensor_report_cb(void *arg);
 static void mqtt_connect(void);
 static void mqtt_disconnect(void);
 static void publish_status(void);
-static void handle_hub_command(const char *data, int len);
 
 /* ============================================================
  *  Public API
@@ -127,12 +126,11 @@ void debi_os_init(void)
     };
     ESP_ERROR_CHECK(esp_timer_create(&sr_args, &s_os.sensor_timer));
 
-    /* Start MQTT connection attempt */
+    /* WiFi will trigger mqtt_connect via on_wifi_connected */
     s_os.mode = DEBI_MODE_CONNECTING;
     ui_face_set_state(FACE_STATE_BOOT);
-    mqtt_connect();
 
-    ESP_LOGI(TAG, "Debi OS ready, mode=%s", MODE_NAMES[s_os.mode]);
+    ESP_LOGI(TAG, "Debi OS ready, mode=%s (waiting for WiFi)", MODE_NAMES[s_os.mode]);
 }
 
 void debi_os_deinit(void)
@@ -389,10 +387,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 
             ESP_LOGI(TAG, "hub msg: %s (%d bytes)", topic, event->data_len);
 
-            if (strstr(topic, "/cmd") || strstr(topic, "/config")) {
-                handle_hub_command(event->data, event->data_len);
             debi_comms_handle_message(topic, event->data, event->data_len);
-            }
             break;
         }
 
@@ -409,49 +404,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
  *  Hub command handler
  * ============================================================ */
 
-static void handle_hub_command(const char *data, int len)
-{
-    /* Parse JSON command from hub */
-    cJSON *root = cJSON_ParseWithLength(data, len);
-    if (!root) {
-        ESP_LOGW(TAG, "invalid hub command JSON");
-        return;
-    }
 
-    cJSON *cmd = cJSON_GetObjectItem(root, "cmd");
-    if (cmd && cJSON_IsString(cmd)) {
-        const char *c = cmd->valuestring;
-
-        if (strcmp(c, "set_mode") == 0) {
-            cJSON *mode_val = cJSON_GetObjectItem(root, "mode");
-            if (mode_val && cJSON_IsString(mode_val)) {
-                const char *m = mode_val->valuestring;
-                if (strcmp(m, "active") == 0)
-                    debi_os_set_mode(DEBI_MODE_ACTIVE);
-                else if (strcmp(m, "night") == 0)
-                    debi_os_set_mode(DEBI_MODE_NIGHT);
-                else if (strcmp(m, "alert") == 0)
-                    debi_os_set_mode(DEBI_MODE_ALERT);
-                else if (strcmp(m, "setup") == 0)
-                    debi_os_set_mode(DEBI_MODE_SETUP);
-                else
-                    ESP_LOGW(TAG, "unknown mode: %s", m);
-            }
-        } else if (strcmp(c, "report_sensors") == 0) {
-            debi_os_report_sensors();
-        } else if (strcmp(c, "ping") == 0) {
-            /* Respond with pong */
-            if (s_os.mqtt_handle) {
-                esp_mqtt_client_publish(s_os.mqtt_handle,
-                    DEBI_TOPIC_STATUS, "{\"pong\":true}", 0, 0, 0);
-            }
-        } else {
-            ESP_LOGW(TAG, "unknown cmd: %s", c);
-        }
-    }
-
-    cJSON_Delete(root);
-}
 
 /* ============================================================
  *  WiFi event handlers
@@ -460,8 +413,8 @@ static void handle_hub_command(const char *data, int len)
 static void on_wifi_connected(void *handler_arg, esp_event_base_t base,
                                int32_t id, void *event_data)
 {
-    ESP_LOGI(TAG, "WiFi/SenseCraft MQTT connected event");
-    /* Our MQTT auto-reconnect handles the hub connection */
+    ESP_LOGI(TAG, "WiFi connected — starting hub MQTT");
+    mqtt_connect();
 }
 
 static void on_wifi_disconnected(void *handler_arg, esp_event_base_t base,
@@ -519,6 +472,30 @@ static void heartbeat_cb(void *arg)
         esp_mqtt_client_publish(s_os.mqtt_handle,
                                  DEBI_TOPIC_HEARTBEAT, json, 0, 0, 0);
         free(json);
+    }
+
+    /* Night mode auto-switch */
+    debi_comms_config_t cfg = debi_comms_get_config();
+    if (cfg.night_auto) {
+        struct tm now_tm;
+        time_t t = time(NULL);
+        localtime_r(&t, &now_tm);
+        int hour = now_tm.tm_hour;
+
+        bool should_be_night;
+        if (cfg.night_start_hour > cfg.night_end_hour) {
+            should_be_night = (hour >= cfg.night_start_hour || hour < cfg.night_end_hour);
+        } else {
+            should_be_night = (hour >= cfg.night_start_hour && hour < cfg.night_end_hour);
+        }
+
+        if (should_be_night && s_os.mode == DEBI_MODE_ACTIVE) {
+            ESP_LOGI(TAG, "auto night mode: hour=%d", hour);
+            debi_os_set_mode(DEBI_MODE_NIGHT);
+        } else if (!should_be_night && s_os.mode == DEBI_MODE_NIGHT) {
+            ESP_LOGI(TAG, "auto wake: hour=%d", hour);
+            debi_os_set_mode(DEBI_MODE_ACTIVE);
+        }
     }
     cJSON_Delete(root);
 }
