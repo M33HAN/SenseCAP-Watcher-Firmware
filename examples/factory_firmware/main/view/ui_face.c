@@ -295,31 +295,31 @@ static void draw_glow_ring(lv_draw_ctx_t *dc) {
 
 static void draw_squared_eye(lv_draw_ctx_t *dc, int side, float bk) {
     float b = s_cur.brightness;
-    float sz = s_cur.eye_size * 40.0f;
+    float sz = s_cur.eye_size;
     float openness = s_cur.eye_openness * bk;
     if (openness < 0.02f) { draw_closed_eyes(dc); return; }
     float ps = s_cur.pupil_size;
-    lv_coord_t cx = FACE_CX + side * 52 + (lv_coord_t)(s_cur.gaze.x * 15);
-    lv_coord_t cy = FACE_CY - 18 + (lv_coord_t)(s_cur.gaze.y * 10);
-    lv_coord_t hw = (lv_coord_t)(sz * 0.55f);
-    lv_coord_t hh = (lv_coord_t)(sz * 0.45f * openness);
+    lv_coord_t cx = FACE_CX + (lv_coord_t)(side * FACE_EYE_SPACING * sz) + (lv_coord_t)(s_cur.gaze.x * 15);
+    lv_coord_t cy = FACE_CY + FACE_EYE_Y_OFF + (lv_coord_t)(s_cur.gaze.y * 10);
+    lv_coord_t hw = (lv_coord_t)(FACE_EYE_W * sz / 2);
+    lv_coord_t hh = (lv_coord_t)(FACE_EYE_H * sz * openness / 2);
     /* outer eye rounded rect */
     uint32_t pc = s_cur.primary_color;
     lv_color_t col = color_from_hex(pc);
     lv_opa_t opa = (lv_opa_t)(b * 255);
-    draw_rounded_rect(dc, cx - hw, cy - hh, cx + hw, cy + hh, 10, col, opa);
+    draw_rounded_rect(dc, cx - hw, cy - hh, 2*hw, 2*hh, FACE_EYE_R, col, opa);
     /* pupil - smaller inner rect */
     lv_coord_t pw = (lv_coord_t)(hw * ps * 0.6f);
     lv_coord_t ph = (lv_coord_t)(hh * ps * 0.7f);
-    lv_coord_t px = cx + (lv_coord_t)(s_cur.gaze.x * 8);
-    lv_coord_t py = cy + (lv_coord_t)(s_cur.gaze.y * 5);
+    lv_coord_t px = cx + (lv_coord_t)(s_cur.gaze.x * hw * 0.3f);
+    lv_coord_t py = cy + (lv_coord_t)(s_cur.gaze.y * hh * 0.3f);
     lv_color_t bg = color_from_hex(DEBI_COLOR_BG);
-    draw_rounded_rect(dc, px - pw, py - ph, px + pw, py + ph, 6, bg, opa);
+    draw_rounded_rect(dc, px - pw, py - ph, 2*pw, 2*ph, 6, bg, opa);
     /* white highlight square */
-    lv_coord_t hs = (lv_coord_t)(sz * 0.14f);
-    lv_coord_t hlx = cx - hw/2 + 2;
-    lv_coord_t hly = cy - hh/2 + 2;
-    draw_rounded_rect(dc, hlx, hly, hlx + hs, hly + hs, 2,
+    lv_coord_t hs = FACE_HL_SIZE;
+    lv_coord_t hlx = cx - hw + FACE_HL_SIZE/2 + 3;
+    lv_coord_t hly = cy - hh + FACE_HL_SIZE/2 + 3;
+    draw_rounded_rect(dc, hlx, hly, hs, hs, 2,
                       lv_color_white(), (lv_opa_t)(b * 200));
 }
 
@@ -328,8 +328,8 @@ static void draw_crescent_eyes(lv_draw_ctx_t *dc) {
     lv_color_t col = color_from_hex(s_cur.primary_color);
     lv_opa_t opa = (lv_opa_t)(b * 255);
     for (int side = -1; side <= 1; side += 2) {
-        lv_coord_t cx = FACE_CX + side * 52 + (lv_coord_t)(s_cur.gaze.x * 15);
-        lv_coord_t cy = FACE_CY - 18;
+        lv_coord_t cx = FACE_CX + (lv_coord_t)(side * FACE_EYE_SPACING) + (lv_coord_t)(s_cur.gaze.x * 15);
+        lv_coord_t cy = FACE_CY + FACE_EYE_Y_OFF;
         /* Draw crescent as thick arc */
         lv_draw_arc_dsc_t d; lv_draw_arc_dsc_init(&d);
         d.color = col; d.opa = opa;
@@ -346,18 +346,18 @@ static void draw_worried_eyes(lv_draw_ctx_t *dc, float bk) {
     lv_color_t col = color_from_hex(s_cur.primary_color);
     lv_opa_t opa = (lv_opa_t)(b * 255);
     for (int side = -1; side <= 1; side += 2) {
-        lv_coord_t cx = FACE_CX + side * 52;
-        lv_coord_t cy = FACE_CY - 18;
-        lv_coord_t hw = 22, hh = (lv_coord_t)(18 * openness);
+        lv_coord_t cx = FACE_CX + (lv_coord_t)(side * FACE_EYE_SPACING);
+        lv_coord_t cy = FACE_CY + FACE_EYE_Y_OFF;
+        lv_coord_t hw = (lv_coord_t)(FACE_EYE_W/2), hh = (lv_coord_t)(FACE_EYE_H * openness / 2);
         /* Slightly tilted worried eyes */
         lv_coord_t tilt = side * 4;
-        draw_rounded_rect(dc, cx - hw, cy - hh + tilt, cx + hw, cy + hh + tilt,
+        draw_rounded_rect(dc, cx - hw, cy - hh + tilt, 2*hw, 2*hh,
                           8, col, opa);
         /* Inner dark */
         lv_color_t bg = color_from_hex(DEBI_COLOR_BG);
         lv_coord_t pw = (lv_coord_t)(hw * 0.55f);
         lv_coord_t ph = (lv_coord_t)(hh * 0.65f);
-        draw_rounded_rect(dc, cx - pw, cy - ph + tilt, cx + pw, cy + ph + tilt,
+        draw_rounded_rect(dc, cx - pw, cy - ph + tilt, 2*pw, 2*ph,
                           5, bg, opa);
         /* Worried brow line */
         draw_line_seg(dc, cx - hw - 4, cy - hh - 8 - side*3,
