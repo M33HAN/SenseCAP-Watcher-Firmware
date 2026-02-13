@@ -1,10 +1,9 @@
 /**
- * @file ui_face_states.h
- * @brief Debi Face State Machine — Expression Presets
+ * @file   ui_face_states.h
+ * @brief  Debi Face State Machine v2 — Expression Presets
  *
  * Copyright (c) 2026 Debi Guardian
  */
-
 #ifndef UI_FACE_STATES_H
 #define UI_FACE_STATES_H
 
@@ -18,6 +17,7 @@ typedef enum {
     FACE_STATE_IDLE = 0,
     FACE_STATE_PRESENCE,
     FACE_STATE_HAPPY,
+    FACE_STATE_LOVE,          /* NEW: heart eyes + floating hearts */
     FACE_STATE_LISTENING,
     FACE_STATE_CONCERNED,
     FACE_STATE_ALERT_FALL,
@@ -40,4 +40,5 @@ const char  *ui_face_state_name(face_state_t state);
 #ifdef __cplusplus
 }
 #endif
+
 #endif /* UI_FACE_STATES_H */
