@@ -113,6 +113,10 @@ void debi_os_report_detection(const char *type, int score);
  */
 void debi_os_report_sensors(void);
 
+/** Get the MQTT client handle for publishing */
+/** Get the MQTT client handle for publishing (returns esp_mqtt_client_handle_t) */
+void *debi_os_get_mqtt_handle(void);
+
 #ifdef __cplusplus
 }
 #endif

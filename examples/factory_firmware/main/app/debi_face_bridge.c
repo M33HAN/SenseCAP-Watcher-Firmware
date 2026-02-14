@@ -15,6 +15,7 @@
  */
 
 #include "debi_face_bridge.h"
+#include "debi_camera.h"
 #include "debi_voice.h"
 
 #include <string.h>
@@ -268,6 +269,9 @@ static void on_ai_camera_preview(void *handler_arg, esp_event_base_t base,
     if (!preview) return;
 
     process_inference(&preview->inference);
+
+    /* Forward frame to hub for Coral TPU analysis */
+    debi_camera_forward_frame(preview);
 }
 
 /**

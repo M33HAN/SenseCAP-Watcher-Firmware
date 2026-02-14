@@ -228,6 +228,12 @@ void debi_os_report_detection(const char *type, int score)
     cJSON_Delete(root);
 }
 
+
+void *debi_os_get_mqtt_handle(void)
+{
+    return s_os.mqtt_handle;
+}
+
 void debi_os_report_sensors(void)
 {
     if (!s_os.hub_connected || !s_os.mqtt_handle) return;
