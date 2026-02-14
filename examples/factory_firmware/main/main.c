@@ -28,7 +28,7 @@
 #include "app_device_info.h"
 #include "util.h"
 // DEBI: removed #include "app_ota.h"
-// DEBI: removed #include "app_taskflow.h"
+#include "app_taskflow.h"  // DEBI: kept - needed for task flow engine
 #include "view.h"
 #include "app_sensor.h"
 
@@ -173,7 +173,8 @@ void app_init(void)
     app_device_info_init();
     // DEBI: removed app_sensecraft_init();
     // DEBI: removed app_ota_init();
-    debi_taskflow_init();  // DEBI: replaces app_taskflow_init
+    app_taskflow_init();  // DEBI: kept - registers task flow event handlers
+    debi_taskflow_init();  // DEBI: starts person detection after handlers are registered
     debi_comms_init();          /* 1. mutex & queue FIRST */
     debi_voice_init();          /* 2. audio module */
     debi_face_bridge_init();    /* 3. face bridge */

@@ -2,8 +2,8 @@
  * @file debi_taskflow.c
  * @brief Debi Task Flow - Always-on person detection
  *
- * Simplified task flow that starts person detection on boot
- * and keeps it running. No cloud dependency, no complex state.
+ * Starts person detection after the task flow engine is ready.
+ * Uses a delayed FreeRTOS task to ensure event handlers are registered.
  *
  * Copyright (c) 2026 Debi Guardian
  */
@@ -19,12 +19,13 @@
 
 static const char *TAG = "debi_tf";
 
-esp_err_t debi_taskflow_init(void)
+static void debi_taskflow_start_task(void *arg)
 {
-    ESP_LOGI(TAG, "Debi task flow init - starting person detection");
+    /* Wait for task flow engine to fully initialise */
+    vTaskDelay(pdMS_TO_TICKS(3000));
 
-    /* Post the person detection task flow to start via local event.
-     * Task ID 2 = person detection in factory local taskflow mapping. */
+    ESP_LOGI(TAG, "Starting person detection task flow");
+
     uint32_t tf_num = 2;  /* 0=gesture, 1=pet, 2=person */
     esp_err_t ret = esp_event_post_to(app_event_loop_handle,
                                        VIEW_EVENT_BASE,
@@ -34,9 +35,20 @@ esp_err_t debi_taskflow_init(void)
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start person detection: %s", esp_err_to_name(ret));
     } else {
-        ESP_LOGI(TAG, "Person detection task flow started");
+        ESP_LOGI(TAG, "Person detection started successfully");
     }
-    return ret;
+
+    vTaskDelete(NULL);
+}
+
+esp_err_t debi_taskflow_init(void)
+{
+    ESP_LOGI(TAG, "Debi task flow init - will start person detection in 3s");
+
+    /* Launch in a separate task so we don't block the init sequence */
+    xTaskCreate(debi_taskflow_start_task, "debi_tf", 4096, NULL, 5, NULL);
+
+    return ESP_OK;
 }
 
 void debi_taskflow_deinit(void)
