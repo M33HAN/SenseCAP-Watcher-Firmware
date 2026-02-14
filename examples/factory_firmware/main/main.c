@@ -19,6 +19,7 @@
 #include "storage.h"
 #include "audio_player.h"
 #include "app_wifi.h"
+#include "debi_wifi.h"
 // DEBI: removed #include "app_ble.h"
 #include "app_time.h"
 // DEBI: removed #include "app_cmd.h"
@@ -181,6 +182,7 @@ void app_init(void)
     debi_os_init();             /* 4. MQTT last */
     // DEBI: removed app_voice_interaction_init();
     app_wifi_init();
+    debi_wifi_connect();
     app_time_init();
     // DEBI: removed app_at_cmd_init();
     // DEBI: removed app_ble_init();

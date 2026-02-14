@@ -71,6 +71,8 @@ static void on_wifi_connected(void *handler_arg, esp_event_base_t base,
                                int32_t id, void *event_data);
 static void on_wifi_disconnected(void *handler_arg, esp_event_base_t base,
                                   int32_t id, void *event_data);
+static void on_wifi_state_changed(void *handler_arg, esp_event_base_t base,
+                                  int32_t id, void *event_data);
 static void on_detection_event(void *handler_arg, esp_event_base_t base,
                                 int32_t id, void *event_data);
 static void heartbeat_cb(void *arg);
@@ -104,6 +106,11 @@ void debi_os_init(void)
     esp_event_handler_register_with(
         app_event_loop_handle, CTRL_EVENT_BASE,
         CTRL_EVENT_MQTT_DISCONNECTED, on_wifi_disconnected, NULL);
+
+    /* Listen for WiFi state changes to trigger MQTT connection */
+    esp_event_handler_register_with(
+        app_event_loop_handle, VIEW_EVENT_BASE,
+        VIEW_EVENT_WIFI_ST, on_wifi_state_changed, NULL);
 
     /* Listen for local detection events to relay to hub */
     esp_event_handler_register_with(
@@ -282,7 +289,9 @@ static void mqtt_connect(void)
 
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri         = DEBI_HUB_MQTT_URI,
-        .credentials.client_id      = DEBI_HUB_MQTT_CLIENT_ID,
+        .credentials.client_id    = DEBI_HUB_MQTT_CLIENT_ID,
+        .credentials.username      = DEBI_HUB_MQTT_USER,
+        .credentials.authentication.password = DEBI_HUB_MQTT_PASS,
         .session.disable_clean_session = false,
         .network.disable_auto_reconnect = false,
         .network.reconnect_timeout_ms   = 10000,
@@ -416,6 +425,21 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
  *  WiFi event handlers
  * ============================================================ */
 
+
+static void on_wifi_state_changed(void *handler_arg, esp_event_base_t base,
+                                  int32_t id, void *event_data)
+{
+    if (!event_data) return;
+    struct view_data_wifi_st *p_st = (struct view_data_wifi_st *)event_data;
+    if (p_st->is_connected && !s_os.hub_connected) {
+        ESP_LOGI(TAG, "WiFi connected - triggering MQTT connect");
+        mqtt_connect();
+    } else if (!p_st->is_connected) {
+        ESP_LOGW(TAG, "WiFi disconnected");
+        mqtt_disconnect();
+    }
+}
+
 static void on_wifi_connected(void *handler_arg, esp_event_base_t base,
                                int32_t id, void *event_data)
 {
@@ -539,4 +563,11 @@ static void publish_status(void)
         free(json);
     }
     cJSON_Delete(root);
+}
+
+/* Public wrapper for mqtt_connect - called by debi_wifi after WiFi is up */
+void debi_os_mqtt_start(void)
+{
+    ESP_LOGI("debi-os", "debi_os_mqtt_start() called from WiFi module");
+    mqtt_connect();
 }

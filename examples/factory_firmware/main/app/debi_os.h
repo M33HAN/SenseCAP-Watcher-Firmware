@@ -41,6 +41,14 @@ typedef enum {
 
 #ifndef DEBI_HUB_MQTT_CLIENT_ID
 #define DEBI_HUB_MQTT_CLIENT_ID "debi-watcher-01"
+
+#ifndef DEBI_HUB_MQTT_USER
+#define DEBI_HUB_MQTT_USER       "debi"
+#endif
+
+#ifndef DEBI_HUB_MQTT_PASS
+#define DEBI_HUB_MQTT_PASS       "debi_hub_2024"
+#endif
 #endif
 
 /* MQTT topics */
@@ -121,3 +129,4 @@ void *debi_os_get_mqtt_handle(void);
 }
 #endif
 #endif /* DEBI_OS_H */
+void debi_os_mqtt_start(void);
