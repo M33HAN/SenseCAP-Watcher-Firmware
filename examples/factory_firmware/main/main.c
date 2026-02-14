@@ -19,28 +19,29 @@
 #include "storage.h"
 #include "audio_player.h"
 #include "app_wifi.h"
-#include "debi_wifi.h"
-// DEBI: removed #include "app_ble.h"
+#include "app_ble.h"
 #include "app_time.h"
-// DEBI: removed #include "app_cmd.h"
-// DEBI: removed #include "at_cmd.h"
-// DEBI: removed #include "app_sensecraft.h"
+#include "app_cmd.h"
+#include "at_cmd.h"
+#include "app_sensecraft.h"
 #include "app_rgb.h"
 #include "app_device_info.h"
 #include "util.h"
-// DEBI: removed #include "app_ota.h"
-#include "app_taskflow.h"  // DEBI: kept - needed for task flow engine
+#include "app_ota.h"
+#include "app_taskflow.h"
 #include "view.h"
 #include "app_sensor.h"
 
 #include "app_audio_player.h"
 #include "app_audio_recorder.h"
-// DEBI: removed #include "app_voice_interaction.h"
+#include "app_voice_interaction.h"
 #include "debi_face_bridge.h"
 #include "debi_os.h"
 #include "debi_taskflow.h"
 #include "debi_voice.h"
 #include "debi_comms.h"
+#include "app_wifi.h"
+#include "debi_wifi.h"
 
 
 #ifdef CONFIG_INTR_TRACKING
@@ -92,9 +93,14 @@ static void __app_event_loop_handler(void *handler_args, esp_event_base_t base, 
     {
         case VIEW_EVENT_SHUTDOWN: {
             ESP_LOGI(TAG, "event: VIEW_EVENT_SHUTDOWN");
-            // DEBI: sensecraft removed
+            app_sensecraft_disconnect();
             bsp_lcd_brightness_set(0);
-            // DEBI: sensecraft wait removed
+            for (int i = 0; i < 10; i++)
+            {
+                vTaskDelay(pdMS_TO_TICKS(200));
+                if (!app_sensecraft_is_connected())
+                    break;
+            }
             fflush(stdout);
             if (get_sdcard_total_size(MAX_CALLER) > 0)
             {
@@ -111,7 +117,7 @@ static void __app_event_loop_handler(void *handler_args, esp_event_base_t base, 
         }
         case VIEW_EVENT_REBOOT: {
             ESP_LOGI(TAG, "event: VIEW_EVENT_REBOOT");
-            // DEBI: sensecraft removed
+            app_sensecraft_disconnect();
             bsp_lcd_brightness_set(0);
             fflush(stdout);
             if (get_sdcard_total_size(MAX_CALLER) > 0)
@@ -172,22 +178,23 @@ void app_init(void)
     app_audio_recorder_init();
     app_rgb_init();
     app_device_info_init();
-    // DEBI: removed app_sensecraft_init();
-    // DEBI: removed app_ota_init();
-    app_taskflow_init();  // DEBI: kept - registers task flow event handlers
-    debi_taskflow_init();  // DEBI: starts person detection after handlers are registered
-    debi_comms_init();          /* 1. mutex & queue FIRST */
-    debi_voice_init();          /* 2. audio module */
-    debi_face_bridge_init();    /* 3. face bridge */
-    debi_os_init();             /* 4. MQTT last */
-    // DEBI: removed app_voice_interaction_init();
+    app_sensecraft_init();
+    app_ota_init();
+    app_taskflow_init();
+    app_voice_interaction_init();
     app_wifi_init();
-    // debi_wifi_connect(); // DEBI: now handled inside app_wifi_init()
     app_time_init();
-    // DEBI: removed app_at_cmd_init();
-    // DEBI: removed app_ble_init();
-    // DEBI: removed app_cmd_init();
+    app_at_cmd_init();
+    app_ble_init();
+    app_cmd_init();
     app_sensor_init();
+
+    /* DEBI: Additional module inits — after all SenseCraft inits */
+    debi_taskflow_init();   /* DEBI: person detection auto-start */
+    debi_comms_init();      /* DEBI: mutex & queue */
+    debi_voice_init();      /* DEBI: audio module */
+    debi_face_bridge_init();/* DEBI: face bridge */
+    debi_os_init();         /* DEBI: MQTT */
 }
 
 void task_app_init(void *p_arg)
