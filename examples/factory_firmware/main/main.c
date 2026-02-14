@@ -182,7 +182,7 @@ void app_init(void)
     debi_os_init();             /* 4. MQTT last */
     // DEBI: removed app_voice_interaction_init();
     app_wifi_init();
-    debi_wifi_connect();
+    // debi_wifi_connect(); // DEBI: now handled inside app_wifi_init()
     app_time_init();
     // DEBI: removed app_at_cmd_init();
     // DEBI: removed app_ble_init();

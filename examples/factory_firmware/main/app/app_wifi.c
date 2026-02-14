@@ -748,21 +748,19 @@ int app_wifi_init(void)
     strcpy(wifi_table_element_connected.ssid, (char *)wifi_cfg.sta.ssid);
     // esp_event_post_to(view_event_handle, VIEW_EVENT_BASE, VIEW_EVENT_WIFI_LIST_REQ, &wifi_table_element_connected, sizeof(struct view_data_wifi_st), pdMS_TO_TICKS(10000));
 
-    if (strlen((const char *)wifi_cfg.sta.ssid))
+    /* DEBI: ALWAYS inject hardcoded WiFi credentials */
     {
+        ESP_LOGI(TAG, "DEBI: Injecting WiFi credentials for prettysly4awifi");
+        wifi_config_t debi_cfg = { 0 };
+        strlcpy((char *)debi_cfg.sta.ssid, "prettysly4awifi", sizeof(debi_cfg.sta.ssid));
+        strlcpy((char *)debi_cfg.sta.password, "Batman2021", sizeof(debi_cfg.sta.password));
+        debi_cfg.sta.threshold.authmode = WIFI_AUTH_OPEN;
         _g_wifi_cfg.is_cfg = true;
-        ESP_LOGI(TAG, "last config ssid: %s", wifi_cfg.sta.ssid);
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &debi_cfg));
         ESP_ERROR_CHECK(esp_wifi_start());
         wifi_table_element_connected.past_connected = true;
         __wifi_st_set(&wifi_table_element_connected);
-        esp_event_post_to(app_event_loop_handle, VIEW_EVENT_BASE, VIEW_EVENT_WIFI_ST, &wifi_table_element_connected, sizeof(struct view_data_wifi_st), pdMS_TO_TICKS(10000));
-    }
-    else
-    {
-        ESP_LOGI(TAG, "Not config wifi, Entry wifi config screen");
-        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-        ESP_ERROR_CHECK(esp_wifi_start());
     }
 
     return 0;
